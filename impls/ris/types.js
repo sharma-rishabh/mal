@@ -25,6 +25,10 @@ class MalList extends MalValue {
     super(value);
   }
 
+  isEmpty() {
+    return this.value.length === 0;
+  }
+
   pr_str() {
     return "(" + this.value.map(pr_str).join(" ") + ")";
   }
