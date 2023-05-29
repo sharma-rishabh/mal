@@ -26,6 +26,11 @@ const eval_ast = (ast, env) => {
     return new MalList(newAst);
   }
 
+  if (ast instanceof MalVector) {
+    const newAst = ast.value.map((x) => EVAL(x, env));
+    return new MalVector(newAst);
+  }
+
   return ast;
 };
 
