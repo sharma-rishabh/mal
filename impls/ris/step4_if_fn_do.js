@@ -69,16 +69,17 @@ function handle_do(ast, env) {
   return res;
 }
 
-function isTrue(predicate) {
-  const evaluated_pred = EVAL(predicate);
+function isTrue(predicate, env) {
+  const evaluated_pred = EVAL(predicate, env);
   return !(evaluated_pred === false || evaluated_pred instanceof MalNil);
 }
 
 function handle_if(ast, env) {
-  predicate = ast.value[1];
-  if_true = ast.value[2];
-  if_false = ast.value[3];
-  if (isTrue(predicate)) {
+  const predicate = ast.value[1];
+  const if_true = ast.value[2];
+  const if_false = ast.value[3];
+
+  if (isTrue(predicate, env)) {
     return EVAL(if_true, env);
   }
   if (if_false === undefined) {
@@ -86,6 +87,28 @@ function handle_if(ast, env) {
   }
   return EVAL(if_false, env);
 }
+
+const create_fn_env = (bindings, expers, outer) => {
+  if (bindings.length !== expers.length) {
+    throw "Invalid number of arguments";
+  }
+
+  const env = new Env(outer);
+
+  for (let index = 0; index < bindings.length; index++) {
+    const binding = bindings[index];
+    const exper = expers[index];
+    env.set(binding, exper);
+  }
+  return env;
+};
+
+const handle_fn = (bindings, statements, env) => {
+  return (...expers) => {
+    const fn_env = create_fn_env(bindings, expers, env);
+    return EVAL(new MalList([new MalSymbol("do"), ...statements]), fn_env);
+  };
+};
 
 const EVAL = (ast, env) => {
   if (!(ast instanceof MalList)) {
@@ -107,6 +130,8 @@ const EVAL = (ast, env) => {
       return handle_do(ast, env);
     case "if":
       return handle_if(ast, env);
+    case "fn*":
+      return handle_fn(ast.value[1].value, ast.value.slice(2), env);
   }
 
   const [fn, ...args] = eval_ast(ast, env).value;

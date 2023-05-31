@@ -1,5 +1,6 @@
 const pr_str = (malValue) => {
   if (malValue instanceof MalValue) return malValue.pr_str();
+  if (typeof malValue === "function") return "#<function>";
 
   return malValue.toString();
 };
