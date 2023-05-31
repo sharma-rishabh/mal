@@ -20,6 +20,12 @@ class MalSymbol extends MalValue {
   }
 }
 
+class MalKeyword extends MalValue {
+  constructor(value) {
+    super(value);
+  }
+}
+
 class MalList extends MalValue {
   constructor(value) {
     super(value);
@@ -54,4 +60,12 @@ class MalNil extends MalValue {
   }
 }
 
-module.exports = { MalSymbol, MalValue, MalList, MalVector, MalNil, pr_str };
+module.exports = {
+  MalSymbol,
+  MalValue,
+  MalList,
+  MalVector,
+  MalNil,
+  MalKeyword,
+  pr_str,
+};
