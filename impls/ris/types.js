@@ -146,6 +146,18 @@ class MalNil extends MalValue {
   }
 }
 
+class MalFunction extends MalValue {
+  constructor(ast, bindings, env) {
+    super(ast);
+    this.bindings = bindings;
+    this.env = env;
+  }
+
+  pr_str() {
+    return "<#function>";
+  }
+}
+
 module.exports = {
   MalSymbol,
   MalValue,
@@ -154,6 +166,7 @@ module.exports = {
   MalNil,
   MalKeyword,
   MalString,
+  MalFunction,
   pr_str,
   are_mal_values,
 };
