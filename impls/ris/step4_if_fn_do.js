@@ -1,6 +1,13 @@
 const readline = require("readline");
 const { read_str } = require("./reader.js");
-const { pr_str, MalSymbol, MalList, MalVector, MalNil } = require("./types.js");
+const {
+  pr_str,
+  MalSymbol,
+  MalList,
+  MalVector,
+  MalNil,
+  MalValue,
+} = require("./types.js");
 const { Env } = require("./env.js");
 const { env } = require("./core.js");
 
@@ -140,6 +147,16 @@ const EVAL = (ast, env) => {
 
 const PRINT = (str) => pr_str(str);
 
+const get_value = (arg) => {
+  if (arg instanceof MalValue) {
+    return arg.pr_str();
+  }
+  return arg;
+};
+
+env.set(new MalSymbol("not"), (arg) =>
+  rep(`((fn* [x] (if x false true)) ${get_value(arg)})`)
+);
 const rep = (str) => PRINT(EVAL(READ(str), env));
 
 const repl = () =>
