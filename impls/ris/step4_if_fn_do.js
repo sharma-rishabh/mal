@@ -95,24 +95,38 @@ function handle_if(ast, env) {
   return EVAL(if_false, env);
 }
 
-const create_fn_env = (bindings, expers, outer) => {
-  if (bindings.length !== expers.length) {
+function hasEqualNoOfArgs(bindings, expers) {
+  return (
+    bindings.length === expers.length ||
+    bindings.map((x) => x.value).includes("&")
+  );
+}
+
+const createFnEnv = (bindings, expres, outer) => {
+  if (!hasEqualNoOfArgs(bindings, expres)) {
     throw "Invalid number of arguments";
   }
 
   const env = new Env(outer);
 
-  for (let index = 0; index < bindings.length; index++) {
+  let index = 0;
+  while (index < bindings.length && bindings[index].value !== "&") {
     const binding = bindings[index];
-    const exper = expers[index];
+    const exper = expres[index];
     env.set(binding, exper);
+    index++;
   }
+
+  if (index < bindings.length - 1 && bindings[index].value === "&") {
+    env.set(bindings[index + 1], new MalList(expres.slice(index)));
+  }
+
   return env;
 };
 
 const handle_fn = (bindings, statements, env) => {
   return (...expers) => {
-    const fn_env = create_fn_env(bindings, expers, env);
+    const fn_env = createFnEnv(bindings, expers, env);
     return EVAL(new MalList([new MalSymbol("do"), ...statements]), fn_env);
   };
 };

@@ -80,7 +80,8 @@ class MalList extends MalValue {
   }
 
   equals(otherValue) {
-    if (!(otherValue instanceof MalList)) return false;
+    if (!(otherValue instanceof MalList || otherValue instanceof MalVector))
+      return false;
     return deepEqual(this.value, otherValue.value);
   }
 
@@ -99,7 +100,8 @@ class MalVector extends MalValue {
   }
 
   equals(otherValue) {
-    if (!(otherValue instanceof MalVector)) return false;
+    if (!(otherValue instanceof MalList || otherValue instanceof MalVector))
+      return false;
     return deepEqual(this.value, otherValue.value);
   }
 
