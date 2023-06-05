@@ -1,4 +1,6 @@
+const fs = require("fs");
 const { Env } = require("./env.js");
+const { read_str } = require("./reader.js");
 const {
   pr_str,
   MalSymbol,
@@ -6,6 +8,8 @@ const {
   MalVector,
   MalNil,
   are_mal_values,
+  MalString,
+  MalAtom,
 } = require("./types.js");
 
 const greater_than = ([prev_element, prev_res], new_element) => {
@@ -37,18 +41,22 @@ const equal_to = ([prev_element, prev_res], new_element) => {
 };
 
 const prn = (args, postfix = "") => {
-  console.log(...args.map(pr_str), postfix);
+  process.stdout.write(args.map((x) => pr_str(x, true).join(" ") + postfix));
   return new MalNil();
 };
 
 const str = (args) => {
-  const string_values = args.map(pr_str);
-  return `"${string_values.join("")}"`;
+  const string_values = args.map((x) => pr_str(x, false)).join("");
+  return new MalString(string_values);
+};
+
+const print = (args, printReadably) => {
+  console.log(...args.map((arg) => pr_str(arg, printReadably)));
+  return new MalNil();
 };
 
 const print_string = (args) => {
-  console.log(str(args));
-  return new MalNil();
+  return args.map((x) => pr_str(x, true)).join(" ");
 };
 
 function isCountable(list) {
@@ -94,10 +102,22 @@ env.set(new MalSymbol("list"), (...args) => new MalList(args));
 env.set(new MalSymbol("list?"), (list) => list instanceof MalList);
 env.set(new MalSymbol("count"), count);
 env.set(new MalSymbol("empty?"), (arg) => 0 === count(arg));
+env.set(new MalSymbol("read-string"), (string) => read_str(string.value));
+env.set(new MalSymbol("slurp"), (fileName) => {
+  return new MalString(fs.readFileSync(fileName.value, "utf-8"));
+});
+env.set(new MalSymbol("atom"), (value) => new MalAtom(value));
+env.set(new MalSymbol("atom?"), (value) => value instanceof MalAtom);
+env.set(new MalSymbol("deref"), (atom) => atom.deref());
+env.set(new MalSymbol("reset!"), (atom, value) => atom.reset(value));
+env.set(new MalSymbol("swap!"), (atom, f, ...args) => atom.swap(f, args));
 
-env.set(new MalSymbol("prn"), (...args) => prn(args));
+env.set(new MalSymbol("prn"), (...args) => print(args, true));
 env.set(new MalSymbol("str"), (...args) => str(args));
-env.set(new MalSymbol("pr-str"), (...args) => print_string(args));
-env.set(new MalSymbol("println"), (...args) => prn(args, "\n"));
+env.set(new MalSymbol("pr-str"), (...args) => {
+  const str = args.map((arg) => pr_str(arg, true)).join(" ");
+  return MalString.createString(str);
+});
+env.set(new MalSymbol("println"), (...args) => print(args, false));
 
 module.exports = { env };

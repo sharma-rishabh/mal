@@ -7,6 +7,7 @@ const {
   MalVector,
   MalNil,
   MalValue,
+  MalFunction,
 } = require("./types.js");
 const { Env } = require("./env.js");
 const { env } = require("./core.js");
@@ -61,19 +62,22 @@ const partition = function (array, chunkSize) {
 
 function handle_let(env, ast) {
   lexical_scope = new Env(env);
+  forms = ast.value.slice(2);
+
   bindings = partition(ast.value[1].value, 2);
   bindings.forEach(([key, form]) =>
     lexical_scope.set(key, EVAL(form, lexical_scope))
   );
-  return EVAL(ast.value[2], lexical_scope);
+
+  doForms = new MalList([new MalSymbol("do"), ...forms]);
+  return [lexical_scope, doForms];
 }
 
 function handle_do(ast, env) {
-  let res;
-  for (let index = 1; index < ast.value.length; index++) {
-    res = EVAL(ast.value[index], env);
+  for (let index = 1; index < ast.value.length - 1; index++) {
+    EVAL(ast.value[index], env);
   }
-  return res;
+  return ast.value[ast.value.length - 1];
 }
 
 function isTrue(predicate, env) {
@@ -87,76 +91,77 @@ function handle_if(ast, env) {
   const if_false = ast.value[3];
 
   if (isTrue(predicate, env)) {
-    return EVAL(if_true, env);
+    return if_true;
   }
   if (if_false === undefined) {
     return new MalNil();
   }
-  return EVAL(if_false, env);
+  return if_false;
 }
 
-function hasEqualNoOfArgs(bindings, expers) {
-  return (
-    bindings.length === expers.length ||
-    bindings.map((x) => x.value).includes("&")
-  );
-}
-
-const createFnEnv = (bindings, expres, outer) => {
-  if (!hasEqualNoOfArgs(bindings, expres)) {
+const create_fn_env = (bindings, expers, outer) => {
+  if (bindings.length !== expers.length) {
     throw "Invalid number of arguments";
   }
 
   const env = new Env(outer);
 
-  let index = 0;
-  while (index < bindings.length && bindings[index].value !== "&") {
+  for (let index = 0; index < bindings.length; index++) {
     const binding = bindings[index];
-    const exper = expres[index];
+    const exper = expers[index];
     env.set(binding, exper);
-    index++;
   }
-
-  if (index < bindings.length - 1 && bindings[index].value === "&") {
-    env.set(bindings[index + 1], new MalList(expres.slice(index)));
-  }
-
   return env;
 };
 
 const handle_fn = (bindings, statements, env) => {
-  return (...expers) => {
-    const fn_env = createFnEnv(bindings, expers, env);
-    return EVAL(new MalList([new MalSymbol("do"), ...statements]), fn_env);
+  const doForms = new MalList([new MalSymbol("do"), ...statements]);
+  fn = (...expers) => {
+    const fn_env = create_fn_env(bindings, expers, env);
+    return EVAL(doForms, fn_env);
   };
+  return new MalFunction(doForms, bindings, env, fn);
 };
 
 const EVAL = (ast, env) => {
-  if (!(ast instanceof MalList)) {
-    const evaluation = eval_ast(ast, env);
-    return evaluation;
-  }
+  while (true) {
+    if (!(ast instanceof MalList)) {
+      const evaluation = eval_ast(ast, env);
+      return evaluation;
+    }
 
-  if (ast.isEmpty()) {
-    return ast;
-  }
+    if (ast.isEmpty()) {
+      return ast;
+    }
 
-  switch (ast.value[0].value) {
-    case "def!":
-      env.set(ast.value[1], EVAL(ast.value[2], env));
-      return env.get(ast.value[1]);
-    case "let*":
-      return handle_let(env, ast);
-    case "do":
-      return handle_do(ast, env);
-    case "if":
-      return handle_if(ast, env);
-    case "fn*":
-      return handle_fn(ast.value[1].value, ast.value.slice(2), env);
+    switch (ast.value[0].value) {
+      case "def!":
+        env.set(ast.value[1], EVAL(ast.value[2], env));
+        return env.get(ast.value[1]);
+      case "let*":
+        [env, ast] = handle_let(env, ast);
+        break;
+      case "do":
+        ast = handle_do(ast, env);
+        break;
+      case "if":
+        ast = handle_if(ast, env);
+        break;
+      case "fn*":
+        ast = handle_fn(ast.value[1].value, ast.value.slice(2), env);
+        break;
+      default:
+        const [fn, ...args] = eval_ast(ast, env).value;
+        if (fn instanceof MalFunction) {
+          const oldEnv = fn.env;
+          const bindings = fn.bindings;
+          env = create_fn_env(bindings, args, oldEnv);
+          ast = fn.value;
+        } else {
+          return fn.apply(null, args);
+        }
+    }
   }
-
-  const [fn, ...args] = eval_ast(ast, env).value;
-  return fn.apply(null, args);
 };
 
 const PRINT = (str) => pr_str(str, true);
@@ -168,12 +173,20 @@ const get_value = (arg) => {
   return arg;
 };
 
-env.set(new MalSymbol("not"), (arg) =>
-  rep(`((fn* [x] (if x false true)) ${get_value(arg)})`)
-);
 const rep = (str) => PRINT(EVAL(READ(str), env));
 
-const repl = () =>
+const createREPLEnv = () => {
+  env.set(new MalSymbol("not"), (arg) =>
+    rep(`((fn* [x] (if x false true)) ${get_value(arg)})`)
+  );
+  env.set(new MalSymbol("eval"), (ast) => EVAL(ast, env));
+  rep(
+    '(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))'
+  );
+};
+
+const repl = () => {
+  createREPLEnv();
   rl.question("user> ", (line) => {
     try {
       console.log(rep(line));
@@ -182,5 +195,11 @@ const repl = () =>
     }
     repl();
   });
+};
 
-repl();
+if (process.argv.length >= 3) {
+  rep('(load-file ("' + process.argv[2] + ")");
+  rl.close();
+} else {
+  repl();
+}

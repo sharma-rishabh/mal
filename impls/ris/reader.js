@@ -68,14 +68,23 @@ const read_vector = (reader) => {
   return new MalVector(ast);
 };
 
+const prepend_symbol = (reader, symbol) => {
+  reader.next();
+  const prepend_symbol = new MalSymbol(symbol);
+  const newAst = new MalSymbol(reader.peek());
+  return new MalList([prepend_symbol, newAst]);
+};
+
 const read_form = (reader) => {
   const token = reader.peek();
 
-  switch (token) {
+  switch (token[0]) {
     case "(":
       return read_list(reader);
     case "[":
       return read_vector(reader);
+    case "@":
+      return prepend_symbol(reader, "deref");
     default:
       return read_atom(reader);
   }
@@ -84,7 +93,10 @@ const read_form = (reader) => {
 const tokenize = (str) => {
   const re =
     /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/g;
-  return [...str.matchAll(re)].map((x) => x[1]).slice(0, -1);
+  return [...str.matchAll(re)]
+    .map((x) => x[1])
+    .slice(0, -1)
+    .filter((y) => !y.startsWith(";"));
 };
 
 const read_str = (str) => {
