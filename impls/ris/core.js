@@ -40,11 +40,6 @@ const equal_to = ([prev_element, prev_res], new_element) => {
   return [new_element, prev_res && res];
 };
 
-const prn = (args, postfix = "") => {
-  process.stdout.write(args.map((x) => pr_str(x, true).join(" ") + postfix));
-  return new MalNil();
-};
-
 const str = (args) => {
   const string_values = args.map((x) => pr_str(x, false)).join("");
   return new MalString(string_values);
@@ -53,10 +48,6 @@ const str = (args) => {
 const print = (args, printReadably) => {
   console.log(...args.map((arg) => pr_str(arg, printReadably)));
   return new MalNil();
-};
-
-const print_string = (args) => {
-  return args.map((x) => pr_str(x, true)).join(" ");
 };
 
 function isCountable(list) {
@@ -111,7 +102,7 @@ env.set(new MalSymbol("atom?"), (value) => value instanceof MalAtom);
 env.set(new MalSymbol("deref"), (atom) => atom.deref());
 env.set(new MalSymbol("reset!"), (atom, value) => atom.reset(value));
 env.set(new MalSymbol("swap!"), (atom, f, ...args) => atom.swap(f, args));
-
+env.set(new MalSymbol("*ARGV*"), new MalList(process.argv.slice(2)));
 env.set(new MalSymbol("prn"), (...args) => print(args, true));
 env.set(new MalSymbol("str"), (...args) => str(args));
 env.set(new MalSymbol("pr-str"), (...args) => {
