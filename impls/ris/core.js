@@ -103,6 +103,15 @@ env.set(new MalSymbol("deref"), (atom) => atom.deref());
 env.set(new MalSymbol("reset!"), (atom, value) => atom.reset(value));
 env.set(new MalSymbol("swap!"), (atom, f, ...args) => atom.swap(f, args));
 env.set(new MalSymbol("*ARGV*"), new MalList(process.argv.slice(2)));
+env.set(new MalSymbol("vec"), (list) => new MalVector(list.value));
+env.set(
+  new MalSymbol("cons"),
+  (value, list) => new MalList([value, ...list.value])
+);
+env.set(
+  new MalSymbol("concat"),
+  (...lists) => new MalList(lists.flatMap((x) => x.value))
+);
 env.set(new MalSymbol("prn"), (...args) => print(args, true));
 env.set(new MalSymbol("str"), (...args) => str(args));
 env.set(new MalSymbol("pr-str"), (...args) => {

@@ -35,11 +35,12 @@ const toPrintedRepresentation = (str) =>
 
 const pr_str = (malValue, printReadably = false) => {
   if (typeof malValue === "function") return "#<function>";
+
   if (malValue instanceof MalValue) {
     if (printReadably && malValue instanceof MalString) {
       return `"${toPrintedRepresentation(malValue.pr_str(printReadably))}"`;
     }
-    return malValue.pr_str();
+    return malValue.pr_str(printReadably);
   }
 
   return malValue.toString();
@@ -82,7 +83,13 @@ class MalKeyword extends MalValue {
   }
 }
 
-class MalList extends MalValue {
+class MalSequence extends MalValue {
+  beginsWith(symbol) {
+    return this.value.length > 0 && this.value[0].value === symbol;
+  }
+}
+
+class MalList extends MalSequence {
   constructor(value) {
     super(value);
   }
@@ -97,14 +104,14 @@ class MalList extends MalValue {
     return this.value.length === 0;
   }
 
-  pr_str(print_readably) {
+  pr_str(printReadably) {
     return (
-      "(" + this.value.map((x) => pr_str(x, print_readably)).join(" ") + ")"
+      "(" + this.value.map((x) => pr_str(x, printReadably)).join(" ") + ")"
     );
   }
 }
 
-class MalVector extends MalValue {
+class MalVector extends MalSequence {
   constructor(value) {
     super(value);
   }
@@ -204,6 +211,7 @@ class MalAtom extends MalValue {
 module.exports = {
   MalSymbol,
   MalValue,
+  MalSequence,
   MalList,
   MalVector,
   MalNil,

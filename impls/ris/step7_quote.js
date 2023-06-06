@@ -8,6 +8,7 @@ const {
   MalNil,
   MalValue,
   MalFunction,
+  MalSequence,
 } = require("./types.js");
 const { Env } = require("./env.js");
 const { env } = require("./core.js");
@@ -116,11 +117,47 @@ const create_fn_env = (bindings, expers, outer) => {
 
 const handle_fn = (bindings, statements, env) => {
   const doForms = new MalList([new MalSymbol("do"), ...statements]);
-  fn = (...expers) => {
+  const fn = (...expers) => {
     const fn_env = create_fn_env(bindings, expers, env);
     return EVAL(doForms, fn_env);
   };
   return new MalFunction(doForms, bindings, env, fn);
+};
+
+const quasiquote = (ast) => {
+  if (ast instanceof MalList && ast.beginsWith("unquote")) {
+    return ast.value[1];
+  }
+
+  if (ast instanceof MalSequence) {
+    let result = new MalList([]);
+    for (let index = ast.value.length - 1; index >= 0; index--) {
+      const element = ast.value[index];
+      if (
+        element instanceof MalSequence &&
+        element.beginsWith("splice-unquote")
+      ) {
+        result = new MalList([
+          new MalSymbol("concat"),
+          element.value[1],
+          result,
+        ]);
+      } else {
+        result = new MalList([
+          new MalSymbol("cons"),
+          quasiquote(element),
+          result,
+        ]);
+      }
+    }
+    if (ast instanceof MalList) return result;
+    return new MalList([new MalSymbol("vec"), result]);
+  }
+
+  if (ast instanceof MalSymbol) {
+    return new MalList([new MalSymbol("quote"), ast]);
+  }
+  return ast;
 };
 
 const EVAL = (ast, env) => {
@@ -149,6 +186,13 @@ const EVAL = (ast, env) => {
         break;
       case "fn*":
         ast = handle_fn(ast.value[1].value, ast.value.slice(2), env);
+        break;
+      case "quote":
+        return ast.value[1];
+      case "quasiquoteexpand":
+        return quasiquote(ast.value[1]);
+      case "quasiquote":
+        ast = quasiquote(ast.value[1]);
         break;
       default:
         const [fn, ...args] = eval_ast(ast, env).value;
