@@ -6,7 +6,7 @@ class Env {
 
   set(symbol, malValue) {
     this.data[symbol.value] = malValue;
-  }
+  } 
 
   get(symbol) {
     const env = this.find(symbol);

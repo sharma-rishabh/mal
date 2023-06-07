@@ -118,5 +118,12 @@ env.set(new MalSymbol("pr-str"), (...args) => {
   return MalString.createString(str);
 });
 env.set(new MalSymbol("println"), (...args) => print(args, false));
+env.set(new MalSymbol("first"), (list) =>
+  list instanceof MalNil ? new MalNil() : list.first()
+);
+env.set(new MalSymbol("nth"), (list, n) => list.nth(n));
+env.set(new MalSymbol("rest"), (list) =>
+  list instanceof MalNil ? new MalList([]) : list.rest()
+);
 
 module.exports = { env };

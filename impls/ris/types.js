@@ -87,6 +87,23 @@ class MalSequence extends MalValue {
   beginsWith(symbol) {
     return this.value.length > 0 && this.value[0].value === symbol;
   }
+
+  isEmpty() {
+    return this.value.length === 0;
+  }
+
+  first() {
+    if (this.isEmpty()) return new MalNil();
+    return this.value[0];
+  }
+
+  nth(n) {
+    return this.value[n];
+  }
+
+  rest() {
+    return new MalList(this.value.splice(1));
+  }
 }
 
 class MalList extends MalSequence {
@@ -98,10 +115,6 @@ class MalList extends MalSequence {
     if (!(otherValue instanceof MalList || otherValue instanceof MalVector))
       return false;
     return deepEqual(this.value, otherValue.value);
-  }
-
-  isEmpty() {
-    return this.value.length === 0;
   }
 
   pr_str(printReadably) {
@@ -168,11 +181,12 @@ class MalNil extends MalValue {
 }
 
 class MalFunction extends MalValue {
-  constructor(ast, bindings, env, fn) {
+  constructor(ast, bindings, env, fn, isMacro = false) {
     super(ast);
     this.bindings = bindings;
     this.env = env;
     this.fn = fn;
+    this.isMacro = isMacro;
   }
 
   pr_str(_) {
