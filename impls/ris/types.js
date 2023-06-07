@@ -98,6 +98,9 @@ class MalSequence extends MalValue {
   }
 
   nth(n) {
+    if (n >= this.value.length) {
+      throw "IndexOutOfBound exception";
+    }
     return this.value[n];
   }
 
