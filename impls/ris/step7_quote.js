@@ -133,10 +133,7 @@ const quasiquote = (ast) => {
     let result = new MalList([]);
     for (let index = ast.value.length - 1; index >= 0; index--) {
       const element = ast.value[index];
-      if (
-        element instanceof MalSequence &&
-        element.beginsWith("splice-unquote")
-      ) {
+      if (element instanceof MalList && element.beginsWith("splice-unquote")) {
         result = new MalList([
           new MalSymbol("concat"),
           element.value[1],

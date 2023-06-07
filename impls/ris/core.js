@@ -33,7 +33,6 @@ const equal_to = ([prev_element, prev_res], new_element) => {
   let res = new_element === prev_element;
 
   if (are_mal_values(prev_element, new_element)) {
-    console.log(prev_element, new_element);
     res = prev_element.equals(new_element);
   }
 
